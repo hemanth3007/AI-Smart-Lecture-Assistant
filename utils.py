@@ -3,11 +3,21 @@ import re
 from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# ---------------- LOAD MODELS ----------------
+# ---------------- SPEECH RECOGNITION (CLOUD SAFE) ----------------
+
 speech_recognizer = pipeline(
     "automatic-speech-recognition",
     model="openai/whisper-tiny"
 )
+
+# ---------------- SUMMARIZER ----------------
+
+summarizer = pipeline(
+    "summarization",
+    model="facebook/bart-large-cnn"
+)
+
+# ---------------- FUNCTIONS ----------------
 
 def speech_to_text(audio_path):
     try:
@@ -15,17 +25,6 @@ def speech_to_text(audio_path):
         return result["text"]
     except Exception as e:
         return f"Transcription failed: {str(e)}"
-
-# ---------------- SPEECH TO TEXT ----------------
-
-def speech_to_text(audio_path):
-    try:
-        result = whisper_model.transcribe(audio_path, fp16=False)
-        return result.get("text", "").strip()
-    except Exception as e:
-        return f"Transcription failed: {str(e)}"
-
-# ---------------- SUMMARIZATION ----------------
 
 def summarize_text(text):
     if not text or "failed" in text.lower():
@@ -39,8 +38,6 @@ def summarize_text(text):
     )
     return summary[0]["summary_text"]
 
-# ---------------- KEYWORDS ----------------
-
 def extract_keywords(text, top_n=8):
     if not text:
         return []
@@ -51,26 +48,36 @@ def extract_keywords(text, top_n=8):
     sorted_keywords = sorted(scores, key=lambda x: x[1], reverse=True)
     return [word for word, score in sorted_keywords[:top_n]]
 
-# ---------------- INTERACTIVE QUIZ ----------------
+# ---------------- QUIZ GENERATOR ----------------
 
 def generate_quiz(text):
     sentences = re.split(r'\.|\n', text)
-    sentences = [s.strip() for s in sentences if len(s.strip()) > 40]
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 30]
 
-    if len(sentences) < 5:
-        sentences = sentences * 2
+    if not sentences:
+        return []
 
     quiz_data = []
+    question_number = 1
 
-    for i in range(5):
-        sentence = sentences[i % len(sentences)]
-        words = [w for w in sentence.split() if len(w) > 5]
+    while len(quiz_data) < 5:
 
+        sentence = random.choice(sentences)
+
+        words = [
+            w.strip(",.?!").lower()
+            for w in sentence.split()
+            if len(w.strip(",.?!")) > 5
+        ]
+
+        # If not enough words, skip and try another sentence
         if len(words) < 4:
             continue
 
         correct = random.choice(words)
-        question = sentence.replace(correct, "______")
+
+        # Replace only first occurrence
+        question = sentence.replace(correct, "______", 1)
 
         distractors = random.sample(words, min(3, len(words)))
         options = list(set([correct] + distractors))
@@ -81,9 +88,11 @@ def generate_quiz(text):
         random.shuffle(options)
 
         quiz_data.append({
-            "question": f"Q{i+1}. {question}?",
+            "question": f"Q{question_number}. {question}?",
             "options": options[:4],
             "answer": correct
         })
+
+        question_number += 1
 
     return quiz_data

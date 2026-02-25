@@ -17,6 +17,7 @@ def load_history():
     return []
 
 def save_history(history):
+    st.session_state.history = history
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=4)
 
@@ -48,7 +49,7 @@ st.write("---")
 
 audio_file = st.file_uploader("Upload Lecture Audio (.mp3/.wav)", type=["mp3", "wav"])
 
-# -------- PROCESS AUDIO ONLY ONCE --------
+# -------- PROCESS AUDIO ONCE --------
 
 if audio_file is not None and st.session_state.transcript is None:
 
@@ -129,8 +130,9 @@ if st.session_state.transcript:
                 "score": score
             }
 
-            st.session_state.history.append(new_session)
-            save_history(st.session_state.history)
+            history = st.session_state.history
+            history.append(new_session)
+            save_history(history)
 
             # Generate PDF
             os.makedirs("Notes", exist_ok=True)
@@ -165,8 +167,9 @@ if st.session_state.history:
             st.write(f"### Score: {session['score']} / 5")
 
             if st.button(f"Delete Session {i+1}", key=f"delete_{i}"):
-                st.session_state.history.pop(i)
-                save_history(st.session_state.history)
+                history = st.session_state.history
+                history.pop(i)
+                save_history(history)
                 st.rerun()
 else:
     st.write("No previous sessions yet.")

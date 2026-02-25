@@ -1,17 +1,20 @@
-import whisper
 import random
 import re
 from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 # ---------------- LOAD MODELS ----------------
-
-whisper_model = whisper.load_model("tiny")
-
-summarizer = pipeline(
-    "summarization",
-    model="facebook/bart-large-cnn"
+speech_recognizer = pipeline(
+    "automatic-speech-recognition",
+    model="openai/whisper-tiny"
 )
+
+def speech_to_text(audio_path):
+    try:
+        result = speech_recognizer(audio_path)
+        return result["text"]
+    except Exception as e:
+        return f"Transcription failed: {str(e)}"
 
 # ---------------- SPEECH TO TEXT ----------------
 
